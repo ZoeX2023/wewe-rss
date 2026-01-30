@@ -8,7 +8,8 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+# 关键修改：给缓存ID加railway-前缀，适配Railway要求
+RUN --mount=type=cache,id=railway-pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 RUN pnpm run -r build
 
