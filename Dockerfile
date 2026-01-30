@@ -2,15 +2,16 @@ FROM node:20.16.0-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-# 直接安装pnpm，不用缓存
-RUN npm i -g pnpm
+# 关键：安装和仓库兼容的pnpm版本（8.x），避免锁文件不兼容
+RUN npm i -g pnpm@8.15.6
 
 FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
-# 移除--mount缓存挂载，直接安装依赖（适配Railway）
-RUN pnpm install --frozen-lockfile
+# 强制重新生成锁文件，解决版本不兼容问题
+RUN pnpm install --frozen-lockfile --force
+
 RUN pnpm run -r build
 
 RUN pnpm deploy --filter=server --prod /app
