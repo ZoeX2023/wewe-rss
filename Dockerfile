@@ -2,15 +2,15 @@ FROM node:20.16.0-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
+# 直接安装pnpm，不用缓存
 RUN npm i -g pnpm
 
 FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
-# 关键修改：给缓存ID加railway-前缀，适配Railway要求
-RUN --mount=type=cache,id=railway-pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
+# 移除--mount缓存挂载，直接安装依赖（适配Railway）
+RUN pnpm install --frozen-lockfile
 RUN pnpm run -r build
 
 RUN pnpm deploy --filter=server --prod /app
@@ -27,7 +27,6 @@ FROM base AS app-sqlite
 COPY --from=build /app-sqlite /app
 
 WORKDIR /app
-
 EXPOSE 4000
 
 ENV NODE_ENV=production
@@ -39,15 +38,12 @@ ENV DATABASE_URL="file:../data/wewe-rss.db"
 ENV DATABASE_TYPE="sqlite"
 
 RUN chmod +x ./docker-bootstrap.sh
-
 CMD ["./docker-bootstrap.sh"]
-
 
 FROM base AS app
 COPY --from=build /app /app
 
 WORKDIR /app
-
 EXPOSE 4000
 
 ENV NODE_ENV=production
@@ -58,5 +54,4 @@ ENV AUTH_CODE=""
 ENV DATABASE_URL=""
 
 RUN chmod +x ./docker-bootstrap.sh
-
 CMD ["./docker-bootstrap.sh"]
